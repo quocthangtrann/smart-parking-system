@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LoginInputField, LoginButton } from '../../components/SharedUI';
 
 // Import ảnh từ thư mục assets
@@ -6,6 +7,25 @@ import logoBk from '../../assets/logobk.png';
 import loginBg from '../../assets/login.jpg';
 
 export default function Login() {
+    const navigate = useNavigate();
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+
+    const handleLogin = (e) => {
+        e.preventDefault();
+        if (username === 'admin' && password === '123') {
+            const user = {
+                name: 'Nguyen Van A',
+                id: 'ADMIN01',
+                role: 'System Administrator',
+                avatarUrl: null,
+            };
+            navigate('/admin/dashboard', { state: { user } });
+        } else {
+            alert('Sai thông tin đăng nhập!\nVui lòng thử: admin / 123');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-white flex flex-col font-sans relative overflow-hidden">
 
@@ -36,25 +56,35 @@ export default function Login() {
                 </div>
 
                 {/* Form Đăng nhập (Bắt đầu từ X:590) */}
-                <div className="flex flex-col gap-[20px]">
+                <form className="flex flex-col gap-[20px]" onSubmit={handleLogin}>
                     {/* Trường Username */}
-                    <LoginInputField label="Username" placeholder="Nhập tên đăng nhập" />
+                    <LoginInputField 
+                        label="Username" 
+                        placeholder="Nhập tên đăng nhập" 
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                    />
 
-                    {/* Trường Password (Tạm thời dùng chung component để giữ layout) */}
-                    <LoginInputField label="Password" type="password" placeholder="Nhập mật khẩu" />
+                    {/* Trường Password */}
+                    <LoginInputField 
+                        label="Password" 
+                        type="password" 
+                        placeholder="Nhập mật khẩu" 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
 
                     {/* Hàng nút bấm: Login và Clear */}
                     <div className="flex gap-[15px] mt-[10px]">
-                        <LoginButton isMobile={false}>Login</LoginButton>
-                        {/* Clear button có thể tùy biến màu sắc hoặc variant sau */}
-                        <LoginButton isMobile={false} className="bg-gray-500">Clear</LoginButton>
+                        <LoginButton isMobile={false} type="submit">Login</LoginButton>
+                        <LoginButton isMobile={false} className="bg-gray-500" onClick={(e) => { e.preventDefault(); setUsername(''); setPassword(''); }}>Clear</LoginButton>
                     </div>
 
                     {/* Link phụ */}
                     <div className="mt-2 text-primary font-medium text-sm cursor-pointer hover:underline">
                         Change password?
                     </div>
-                </div>
+                </form>
             </main>
         </div>
     );

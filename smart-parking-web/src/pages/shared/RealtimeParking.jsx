@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, MapPin, Navigation, Clock, CreditCard, ChevronDown, Check, X } from 'lucide-react';
 import logoBk from '../../assets/logobk.png';
 
@@ -32,6 +32,9 @@ const MOCK_GATES_CS1 = [
 
 export default function RealtimeParking() {
     const navigate = useNavigate();
+    const { state } = useLocation();
+    const user = state?.user;
+    const isStudent = user?.role?.toLowerCase() === 'student';
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersRef = useRef({});
@@ -385,8 +388,16 @@ export default function RealtimeParking() {
                                         <p className="text-[16px] font-bold text-gray-900">{selectedGate.fare}</p>
                                     </div>
                                 </div>
-                                <button className="w-full h-[52px] bg-[#5C2FFF] text-white font-bold text-[15px] rounded-[16px] shadow-[0_8px_20px_rgba(92,47,255,0.25)] hover:bg-purple-700 transition-colors">
-                                    Reserve this slot
+                                <button 
+                                    disabled={isStudent}
+                                    onClick={() => navigate('/lecturer/reserve', { state: { user } })}
+                                    className={`w-full h-[52px] font-bold text-[15px] rounded-[16px] transition-colors ${
+                                        isStudent 
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                        : 'bg-[#5C2FFF] text-white shadow-[0_8px_20px_rgba(92,47,255,0.25)] hover:bg-purple-700'
+                                    }`}
+                                >
+                                    {isStudent ? 'Only Lecturer can reserve' : 'Reserve this slot'}
                                 </button>
                             </div>
                         )}

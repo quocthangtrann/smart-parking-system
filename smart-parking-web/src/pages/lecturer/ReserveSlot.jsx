@@ -7,29 +7,7 @@ import logoBk from '../../assets/logobk.png';
 // REUSABLE SUB-COMPONENTS
 // ─────────────────────────────────────────────
 
-const SlotItem = ({ id, status, isReserved, hasEntry, hasExit, onClick }) => {
-    let boxStyle = 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed'; // occupied
-    if (status === 'available') boxStyle = 'border-[#2E7D32] bg-white text-black cursor-pointer hover:bg-green-50';
-    if (isReserved)             boxStyle = 'border-[#5C2FFF] bg-[#F3F0FF] text-[#5C2FFF] cursor-pointer shadow-md';
-
-    return (
-        <div
-            onClick={() => { if (status === 'available' || isReserved) onClick(id); }}
-            className={`relative flex flex-col items-center justify-center h-[70px] rounded-[12px] border-2 transition-all ${boxStyle}`}
-        >
-            <span className="font-bold text-[18px]">{id}</span>
-
-            {isReserved && (
-                <div className="absolute top-1 right-1 bg-[#5C2FFF] rounded-full p-[2px]">
-                    <Check size={12} className="text-white" strokeWidth={3} />
-                </div>
-            )}
-
-            {hasEntry && <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#5C2FFF] text-white text-[9px] font-bold px-2 py-[2px] rounded-full">ENTRY</span>}
-            {hasExit  && <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#D32F2F] text-white text-[9px] font-bold px-2 py-[2px] rounded-full">EXIT</span>}
-        </div>
-    );
-};
+// Replaced by inline rendering
 
 /** Modal is absolute-positioned inside the phone frame (not fixed/viewport) */
 const Modal = ({ isOpen, title, children, onCancel, onConfirm, cancelText = 'Cancel', confirmText = 'Confirm' }) => {
@@ -62,17 +40,7 @@ export default function ReserveSlot() {
     const [modalType, setModalType]       = useState(null); // 'confirmReserve' | 'confirmCancel' | null
     const [message, setMessage]           = useState(null); // { text, type }
 
-    const slots = [
-        { id: 'A1', status: 'available', hasEntry: true },
-        { id: 'A2', status: 'occupied' },
-        { id: 'A3', status: 'available' },
-        { id: 'B1', status: 'occupied' },
-        { id: 'B2', status: 'available' },
-        { id: 'B3', status: 'available' },
-        { id: 'C1', status: 'available' },
-        { id: 'C2', status: 'occupied', hasExit: true },
-        { id: 'C3', status: 'available' },
-    ];
+    // Slots are now dynamically generated in the render
 
     const handleSlotClick = (id) => {
         if (reservedSlot === id) {
@@ -160,18 +128,59 @@ export default function ReserveSlot() {
                         <div className="bg-white w-full rounded-[16px] shadow-sm p-[20px] border border-gray-100 mb-[20px]">
                             <h2 className="text-[18px] font-bold text-black mb-[20px] text-center tracking-wide">GATE A</h2>
 
-                            <div className="grid grid-cols-3 gap-x-[16px] gap-y-[24px] mb-[30px]">
-                                {slots.map(slot => (
-                                    <SlotItem
-                                        key={slot.id}
-                                        id={slot.id}
-                                        status={reservedSlot === slot.id ? 'reserved' : slot.status}
-                                        isReserved={reservedSlot === slot.id}
-                                        hasEntry={slot.hasEntry}
-                                        hasExit={slot.hasExit}
-                                        onClick={handleSlotClick}
-                                    />
-                                ))}
+                            <div className="flex items-center justify-center gap-6 py-[16px] border-b border-gray-50 shrink-0 mb-[16px]">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-[16px] h-[16px] border-2 border-green-500 bg-white rounded-md"></div>
+                                    <span className="text-[12px] font-bold text-gray-600">Available</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-[16px] h-[16px] bg-red-100 border border-red-200 rounded-md flex items-center justify-center"><X size={12} className="text-red-500"/></div>
+                                    <span className="text-[12px] font-bold text-gray-600">Occupied</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-[16px] h-[16px] bg-[#5C2FFF] rounded-md"></div>
+                                    <span className="text-[12px] font-bold text-gray-600">Selected</span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-5 gap-[12px] max-w-[400px] mx-auto mb-[30px] overflow-y-auto max-h-[300px] pr-2 pb-2">
+                                {Array.from({ length: 50 }).map((_, i) => {
+                                    const slotId = `A${i + 1}`;
+                                    const isOccupied = i % 5 === 0 || i % 7 === 0; // mock logic
+                                    const isReserved = reservedSlot === slotId;
+                                    
+                                    // if it's the one we just confirmed as reserved, it acts as 'selected/reserved'
+                                    // if it's currently clicked but not confirmed, it doesn't show here since modal handles it, but let's visually show if selectedSlot
+                                    const isSelected = selectedSlot === slotId || isReserved;
+
+                                    let cellStyle = "aspect-[2/3] rounded-[8px] border-2 flex items-center justify-center text-[12px] font-bold transition-all cursor-pointer shadow-sm relative";
+                                    
+                                    if (isSelected) {
+                                        cellStyle += " bg-[#5C2FFF] border-[#5C2FFF] text-white shadow-md transform scale-105";
+                                    } else if (isOccupied) {
+                                        cellStyle += " bg-red-50 border-red-100 text-red-400 cursor-not-allowed opacity-70";
+                                    } else {
+                                        cellStyle += " bg-white border-green-500 text-green-700 hover:bg-green-50";
+                                    }
+
+                                    return (
+                                        <button 
+                                            key={slotId}
+                                            disabled={isOccupied && !isReserved}
+                                            onClick={() => handleSlotClick(slotId)}
+                                            className={cellStyle}
+                                        >
+                                            {isOccupied && !isReserved ? <X size={16} /> : slotId}
+                                            {isReserved && (
+                                                <div className="absolute -top-2 -right-2 bg-white rounded-full p-[2px] shadow-sm">
+                                                    <div className="bg-[#5C2FFF] rounded-full p-[2px]">
+                                                        <Check size={10} className="text-white" strokeWidth={4} />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
 
                             {/* Gate pagination */}

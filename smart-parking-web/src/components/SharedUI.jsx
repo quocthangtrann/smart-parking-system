@@ -57,7 +57,7 @@ export const LoginButton = ({ children, onClick, variant = 'primary', isMobile =
 // 3. Ô NHẬP LIỆU (Username / Password)
 // Kích thước: 297x30, Bo góc: 4px
 // ==========================================
-export const LoginInputField = ({ label, placeholder, type = "text", isAdmin = false }) => {
+export const LoginInputField = ({ label, placeholder, type = "text", isAdmin = false, value, onChange }) => {
     // Biến trạng thái để theo dõi việc ẩn/hiện mật khẩu
     const [showPassword, setShowPassword] = useState(false);
 
@@ -100,6 +100,8 @@ export const LoginInputField = ({ label, placeholder, type = "text", isAdmin = f
                 <input
                     type={inputType}
                     placeholder={placeholder}
+                    value={value}
+                    onChange={onChange}
                     className="flex-1 w-full bg-transparent text-sm outline-none font-sans text-black"
                 />
 

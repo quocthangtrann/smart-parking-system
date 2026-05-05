@@ -3,14 +3,13 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 // Import Layouts
 import AuthLayout from './layouts/AuthLayout';
 import MobileLayout from './layouts/MobileLayout';
-// import AdminLayout from './layouts/AdminLayout';
-
+import AdminLayout from './layouts/AdminLayout';
 // Import Pages
 import RoleSelection from './pages/auth/RoleSelection';
 import Login from './pages/auth/Login';
 import UserMobileLogin from './pages/auth/UserLogin';
 
-// import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentHome from './pages/student/StudentHome';
 import LecturerHome from './pages/lecturer/LecturerHome';
 import ReserveSlot from './pages/lecturer/ReserveSlot';
@@ -35,9 +34,9 @@ function App() {
         </Route>
 
         {/* NHÓM ADMIN: Giao diện Laptop */}
-        {/* <Route element={<AdminLayout />}>
+        <Route element={<AdminLayout />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        </Route> */}
+        </Route>
 
         {/* NHÓM MOBILE: Sinh viên & Giảng viên */}
         <Route element={<MobileLayout />}>
