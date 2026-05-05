@@ -15,7 +15,7 @@ import StudentHome from './pages/student/StudentHome';
 import LecturerHome from './pages/lecturer/LecturerHome';
 import ReserveSlot from './pages/lecturer/ReserveSlot';
 
-// import RealtimeParking from './pages/shared/RealtimeParking';
+import RealtimeParking from './pages/shared/RealtimeParking';
 import DigitalCard from './pages/shared/DigitalCard';
 import HistoryBilling from './pages/shared/HistoryBilling';
 import Notifications from './pages/shared/Notifications';
@@ -49,7 +49,7 @@ function App() {
           <Route path="/lecturer/reserve" element={<ReserveSlot />} />
 
           {/* Các trang dùng chung (e, f, g, h, I, J, K) */}
-          {/* <Route path="/map" element={<RealtimeParking />} /> */}
+          <Route path="/map" element={<RealtimeParking />} />
           <Route path="/digital-card" element={<DigitalCard />} />
           <Route path="/billing" element={<HistoryBilling />} />
           <Route path="/notifications" element={<Notifications />} />

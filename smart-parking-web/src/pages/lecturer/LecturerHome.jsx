@@ -69,7 +69,7 @@ export default function LecturerHome() {
                                 <ActionCard icon={<CalendarPlus size={28} />} label="Reserve slot"  onClick={() => navigate('/lecturer/reserve', { state: { user } })} />
                                 <ActionCard icon={<Car size={28} />}          label="Vehicle" onClick={() => navigate('/vehicles', { state: { user } })} />
                                 {/* Real-time Parking — full-width */}
-                                <ActionCard icon={<Map size={28} />}          label="Real-time Parking" isFullWidth={true} />
+                                <ActionCard icon={<Map size={28} />}          label="Real-time Parking" isFullWidth={true} onClick={() => navigate('/map', { state: { user } })} />
                             </div>
                         </section>
 

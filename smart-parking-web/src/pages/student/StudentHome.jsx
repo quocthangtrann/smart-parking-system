@@ -66,7 +66,7 @@ export default function StudentHome() {
                             <div className="grid grid-cols-2 gap-[16px]">
                                 <ActionCard icon={<IdCard size={28} />}    label="Parking Card" onClick={() => navigate('/digital-card', { state: { user } })} />
                                 <ActionCard icon={<Receipt size={28} />}   label="History & Billing" onClick={() => navigate('/billing', { state: { user } })} />
-                                <ActionCard icon={<Map size={28} />}       label="Real-time Parking" />
+                                <ActionCard icon={<Map size={28} />}       label="Real-time Parking" onClick={() => navigate('/map', { state: { user } })} />
                                 <ActionCard icon={<Car size={28} />}       label="Vehicle" onClick={() => navigate('/vehicles', { state: { user } })} />
                             </div>
                         </section>
