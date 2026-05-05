@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Xử lý responsive tự động theo yêu cầu của bạn */
+body {
+  background-color: #f1f5f9;
+  /* Màu nền xám nhạt cho toàn web */
+  margin: 0;
+}
+
+/* Khung giả lập mobile cho Student/Lecturer */
+.mobile-container {
+  width: 100%;
+  max-width: 375px;
+  /* Chiều rộng chuẩn iPhone */
+  min-height: 100vh;
+  margin: 0 auto;
+  background-color: white;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
