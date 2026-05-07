@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, MapPin, Navigation, Clock, CreditCard, ChevronDown, Check, X } from 'lucide-react';
 import logoBk from '../../assets/logobk.png';
+import SharedMap from '../../components/SharedMap';
 
 // Standard header component
 const Header = ({ onBack }) => (
@@ -35,7 +36,6 @@ export default function RealtimeParking() {
     const { state } = useLocation();
     const user = state?.user;
     const isStudent = user?.role?.toLowerCase() === 'student';
-    const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersRef = useRef({});
 
@@ -48,52 +48,11 @@ export default function RealtimeParking() {
 
     const [selectedSlot, setSelectedSlot] = useState(null);
 
-    // Initialize Leaflet via CDN injection
-    useEffect(() => {
-        const loadLeaflet = () => {
-            if (window.L) {
-                initMap();
-                return;
-            }
-            
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-            document.head.appendChild(link);
-
-            const script = document.createElement('script');
-            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-            script.async = true;
-            script.onload = () => initMap();
-            document.head.appendChild(script);
-        };
-
-        const initMap = () => {
-            if (mapInstance.current || !mapRef.current) return;
-            
-            const L = window.L;
-            mapInstance.current = L.map(mapRef.current, {
-                center: [10.7729, 106.6592],
-                zoom: 17,
-                zoomControl: false
-            });
-
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(mapInstance.current);
-
-            renderMarkers(gates);
-        };
-
-        loadLeaflet();
-
-        return () => {
-            if (mapInstance.current) {
-                mapInstance.current.remove();
-                mapInstance.current = null;
-            }
-        };
-    }, []);
+    const handleMapReady = (map, L) => {
+        mapInstance.current = map;
+        window.L = L;
+        renderMarkers(gates);
+    };
 
     // Helper to get marker color
     const getStatusColor = (available) => {
@@ -232,7 +191,11 @@ export default function RealtimeParking() {
                     </div>
 
                     {/* Leaflet Map Container */}
-                    <div ref={mapRef} className="flex-1 w-full z-0 bg-gray-100"></div>
+                    <SharedMap 
+                        center={[10.7729, 106.6592]} 
+                        zoom={17} 
+                        onMapReady={handleMapReady} 
+                    />
 
                     {/* Last Updated Toast */}
                     <div className="absolute bottom-[20px] left-1/2 -translate-x-1/2 z-10 bg-black/60 backdrop-blur-sm text-white text-[11px] font-medium px-4 py-1.5 rounded-full shadow-lg transition-all" style={{ opacity: showBottomSheet ? 0 : 1 }}>

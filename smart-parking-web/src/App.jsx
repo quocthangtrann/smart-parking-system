@@ -10,6 +10,11 @@ import Login from './pages/auth/Login';
 import UserMobileLogin from './pages/auth/UserLogin';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
+import DevicesPage from './pages/admin/devices/DevicesPage';
+import NotificationsPage from './pages/admin/notifications/NotificationsPage';
+import ParkingPlacesPage from './pages/admin/parking/ParkingPlacesPage';
+import CredentialsPage from './pages/admin/credentials/CredentialsPage';
+import FeePolicyPage from './pages/admin/policy/FeePolicyPage';
 import StudentHome from './pages/student/StudentHome';
 import LecturerHome from './pages/lecturer/LecturerHome';
 import ReserveSlot from './pages/lecturer/ReserveSlot';
@@ -36,6 +41,11 @@ function App() {
         {/* NHÓM ADMIN: Giao diện Laptop */}
         <Route element={<AdminLayout />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/devices" element={<DevicesPage />} />
+          <Route path="/admin/notifications" element={<NotificationsPage />} />
+          <Route path="/admin/parking" element={<ParkingPlacesPage />} />
+          <Route path="/admin/credentials" element={<CredentialsPage />} />
+          <Route path="/admin/policy" element={<FeePolicyPage />} />
         </Route>
 
         {/* NHÓM MOBILE: Sinh viên & Giảng viên */}
