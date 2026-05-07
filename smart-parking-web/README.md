@@ -1,16 +1,72 @@
-# React + Vite
+# Smart Parking System - Admin & Mobile Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A professional, high-performance web application for managing and monitoring smart parking infrastructure. This project features a comprehensive Admin Dashboard and a responsive Mobile UI for Students and Lecturers.
 
-Currently, two official plugins are available:
+## 🚀 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### Admin Dashboard
+*   **Infrastructure Monitoring**: Real-time map-based oversight of parking gates and hardware status.
+*   **Device Management**: Detailed diagnostic monitoring for cameras, sensors, and barriers.
+*   **Credential Management**: Centralized RFID card tracking and security blocking.
+*   **Notification System**: Broadcast alerts to users with granular targeting (SMS, Email, Push).
+*   **Fee Policy Management**: Flexible configuration of semester-based parking rates and rules.
 
-## React Compiler
+### Mobile Experience
+*   **Real-time Map**: Interactive parking availability view for students and lecturers.
+*   **Digital Parking Card**: Dynamic QR-based identification for seamless entry/exit.
+*   **Reservation System**: Dedicated slot booking for lecturers.
+*   **Billing History**: Transparent oversight of parking sessions and payments.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠 Tech Stack
+*   **Frontend**: React (Vite)
+*   **Styling**: Tailwind CSS
+*   **Icons**: Lucide React
+*   **Maps**: Leaflet.js
+*   **Routing**: React Router DOM
 
-## Expanding the ESLint configuration
+## 🏁 Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
+*   [Node.js](https://nodejs.org/) (v18 or higher recommended)
+*   npm or yarn
+
+### Installation
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/your-repo/smart-parking-system.git
+    cd smart-parking-system/smart-parking-web
+    ```
+
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
+
+### Running the Application
+*   **Development Mode**:
+    ```bash
+    npm run dev
+    ```
+    The application will be available at `http://localhost:5173`.
+
+*   **Production Build**:
+    ```bash
+    npm run build
+    ```
+    The optimized assets will be generated in the `dist` folder.
+
+## 📁 Project Structure
+```text
+src/
+├── components/     # Reusable UI components (Maps, KPI cards, etc.)
+├── layouts/        # Page wrappers (AdminLayout, MobileLayout)
+├── pages/
+│   ├── admin/      # Admin dashboard modules (Devices, Notifications, etc.)
+│   ├── student/    # Student-specific mobile views
+│   ├── lecturer/   # Lecturer-specific mobile views
+│   └── shared/     # Common features (Map, Billing, Settings)
+└── styles/         # Global CSS and themes
+```
+
+## ⚖️ License
+Distributed under the MIT License. See `LICENSE` for more information.
