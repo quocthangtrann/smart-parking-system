@@ -1,16 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
-
-const MOCK_CARDS = [
-    { serial: '1', holder: 'Nguyễn Văn A', class: 'Student', state: 'Online' },
-    { serial: '2', holder: 'Nguyễn Văn B', class: 'Student', state: 'Online' },
-    { serial: '3', holder: 'Nguyễn Văn C', class: 'Lecturer', state: 'Block' },
-    { serial: '4', holder: 'Nguyễn Văn D', class: 'Student', state: 'Online' },
-    { serial: '5', holder: 'Nguyễn Văn E', class: 'Student', state: 'Online' },
-];
+import { fetchAPI, socket } from '../../../api/config';
 
 export default function RFIDTable() {
     const [searchQuery, setSearchQuery] = useState('');
+    const [users, setUsers] = useState([]);
+
+    useEffect(() => {
+        fetchAPI('/users').then(setUsers).catch(console.error);
+    }, []);
 
     return (
         <div className="bg-white flex flex-col h-full shadow-sm" style={{ width: '610px' }}>
@@ -53,16 +51,16 @@ export default function RFIDTable() {
                         </tr>
                     </thead>
                     <tbody className="text-sm">
-                        {MOCK_CARDS.filter(c => c.holder.toLowerCase().includes(searchQuery.toLowerCase())).map((card) => (
+                        {users.filter(u => u.fullName.toLowerCase().includes(searchQuery.toLowerCase())).map((user, idx) => (
                             <tr 
-                                key={card.serial}
+                                key={user.id}
                                 className="bg-gray-100 hover:bg-gray-200 transition-all cursor-pointer"
                             >
-                                <td className="py-3 px-4 first:rounded-l-lg font-medium text-gray-700">{card.serial}</td>
-                                <td className="py-3 px-4 font-bold text-gray-900">{card.holder}</td>
-                                <td className="py-3 px-4 text-gray-600">{card.class}</td>
-                                <td className={`py-3 px-4 font-bold uppercase text-[11px] ${card.state === 'Online' ? 'text-green-500' : 'text-red-500'}`}>
-                                    {card.state}
+                                <td className="py-3 px-4 first:rounded-l-lg font-medium text-gray-700">{idx + 1}</td>
+                                <td className="py-3 px-4 font-bold text-gray-900">{user.fullName}</td>
+                                <td className="py-3 px-4 text-gray-600 capitalize">{user.role}</td>
+                                <td className={`py-3 px-4 font-bold uppercase text-[11px] text-green-500`}>
+                                    Active
                                 </td>
                                 <td className="py-3 px-4 last:rounded-r-lg">
                                     <button className="text-purple-600 font-bold hover:underline">Details</button>

@@ -1,41 +1,35 @@
 import React from 'react';
 import { X, CheckCircle, AlertCircle, Circle, Info } from 'lucide-react';
 
-const MOCK_SLOTS_GRID = [
-    { id: 'A01', state: 'error' },
-    { id: 'A02', state: 'active' },
-    { id: 'A03', state: 'active' },
-    { id: 'A04', state: 'empty' },
-    { id: 'A05', state: 'active' },
-    { id: 'A06', state: 'error' },
-    { id: 'A07', state: 'empty' },
-    { id: 'A08', state: 'active' },
-    { id: 'A09', state: 'empty' },
-    { id: 'A10', state: 'active' },
-    { id: 'A11', state: 'active' },
-    { id: 'A12', state: 'empty' },
-    { id: 'A13', state: 'active' },
-    { id: 'A14', state: 'error' },
-    { id: 'A15', state: 'empty' },
-    { id: 'A16', state: 'active' },
-];
-
-export default function ParkingSlotModal({ isOpen, onClose, gateName }) {
+export default function ParkingSlotModal({ isOpen, onClose, gateName, slots }) {
     if (!isOpen) return null;
 
+    const displaySlots = slots && slots.length > 0 ? slots : [
+        { id: 'A01', state: 'error' },
+        { id: 'A02', state: 'active' },
+        { id: 'A03', state: 'active' },
+        { id: 'A04', state: 'empty' },
+    ];
+
     const getSlotStyles = (state) => {
-        switch (state) {
+        switch (state.toLowerCase()) {
             case 'active': return 'border-green-500 bg-green-50 text-green-700 shadow-[0_0_10px_rgba(34,197,94,0.2)]';
+            case 'occupied': return 'border-green-500 bg-green-50 text-green-700 shadow-[0_0_10px_rgba(34,197,94,0.2)]';
             case 'error': return 'border-red-500 bg-red-50 text-red-700 shadow-[0_0_10px_rgba(239,68,68,0.2)]';
+            case 'maintenance': return 'border-red-500 bg-red-50 text-red-700 shadow-[0_0_10px_rgba(239,68,68,0.2)]';
             case 'empty': return 'border-gray-300 bg-gray-50 text-gray-400';
+            case 'reserved': return 'border-purple-500 bg-purple-50 text-purple-700 shadow-[0_0_10px_rgba(168,85,247,0.2)]';
             default: return 'border-gray-200 bg-white text-gray-400';
         }
     };
 
     const getStatusIcon = (state) => {
-        switch (state) {
+        switch (state.toLowerCase()) {
             case 'active': return <CheckCircle size={14} />;
+            case 'occupied': return <CheckCircle size={14} />;
             case 'error': return <AlertCircle size={14} />;
+            case 'maintenance': return <AlertCircle size={14} />;
+            case 'reserved': return <CheckCircle size={14} />;
             case 'empty': return <Circle size={14} />;
             default: return null;
         }
@@ -91,7 +85,7 @@ export default function ParkingSlotModal({ isOpen, onClose, gateName }) {
                 {/* Grid Area */}
                 <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
                     <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-6">
-                        {MOCK_SLOTS_GRID.map((slot) => (
+                        {displaySlots.map((slot) => (
                             <div 
                                 key={slot.id}
                                 className={`

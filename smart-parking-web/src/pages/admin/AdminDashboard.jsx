@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity, Car, CheckCircle, XCircle, AlertTriangle, MapPin } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
+import { socket, fetchAPI } from '../../api/config';
 
 // ─────────────────────────────────────────────────────────────
 // KPI CARD COMPONENT
 // ─────────────────────────────────────────────────────────────
 export const KPICard = ({ title, value, icon: Icon, colorClass, subtitle }) => (
-    <div className="bg-white rounded-[12px] p-5 shadow-sm border border-gray-100 flex flex-col justify-between">
+    <div className="bg-white rounded-[12px] p-5 shadow-sm border border-gray-100 flex flex-col justify-between h-full">
         <div className="flex justify-between items-start mb-4">
             <h3 className="text-gray-500 text-[14px] font-medium">{title}</h3>
             {Icon && <div className={`p-2 rounded-lg ${colorClass}`}><Icon size={20} /></div>}
@@ -22,7 +23,7 @@ export const KPICard = ({ title, value, icon: Icon, colorClass, subtitle }) => (
 // INFO CARD COMPONENT
 // ─────────────────────────────────────────────────────────────
 const InfoCard = ({ title, children, linkText }) => (
-    <div className="bg-white rounded-[12px] p-5 shadow-sm border border-gray-100 flex flex-col">
+    <div className="bg-white rounded-[12px] p-5 shadow-sm border border-gray-100 flex flex-col h-full">
         <div className="flex justify-between items-center mb-4">
             <h3 className="text-gray-800 text-[16px] font-bold">{title}</h3>
             {linkText && <span className="text-[#2d3a8c] text-[13px] font-semibold cursor-pointer hover:underline">{linkText}</span>}
@@ -33,10 +34,64 @@ const InfoCard = ({ title, children, linkText }) => (
     </div>
 );
 
-// ─────────────────────────────────────────────────────────────
-// MAIN DASHBOARD CONTENT
-// ─────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
+    const [stats, setStats] = useState({
+        revenue: '6.000.000',
+        disconnected: 4,
+        traffic: 2345,
+        gates: [
+            { name: 'Gate 1', available: 80, color: 'bg-green-500' },
+            { name: 'Gate 2', available: 25, color: 'bg-orange-500' },
+            { name: 'Gate 3', available: 0, color: 'bg-red-500' }
+        ]
+    });
+    const [slots, setSlots] = useState([]);
+
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const slotsData = await fetchAPI('/parking-slots');
+                setSlots(slotsData);
+                updateStatsFromSlots(slotsData);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        loadData();
+
+        if (socket) {
+            socket.on('slot_update', (updatedSlot) => {
+                setSlots(prev => {
+                    const newSlots = prev.map(s => s.id === updatedSlot.id ? updatedSlot : s);
+                    updateStatsFromSlots(newSlots);
+                    return newSlots;
+                });
+            });
+            socket.on('device_update', () => loadData());
+        }
+
+        return () => {
+            if (socket) {
+                socket.off('slot_update');
+                socket.off('device_update');
+            }
+        };
+    }, []);
+
+    const updateStatsFromSlots = (currentSlots) => {
+        const gates = ['Gate 1', 'Gate 2', 'Gate 3'].map(name => {
+            const gateSlots = currentSlots.filter(s => s.gate === name);
+            const available = gateSlots.filter(s => s.state === 'empty').length;
+            let color = 'bg-green-500';
+            if (available < 5) color = 'bg-red-500';
+            else if (available < 20) color = 'bg-orange-500';
+            
+            return { name, available, color };
+        });
+        setStats(prev => ({ ...prev, gates }));
+    };
+
     return (
         <div className="max-w-[1400px] mx-auto flex flex-col gap-6">
             
@@ -44,21 +99,21 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <KPICard 
                     title="Daily Revenue" 
-                    value="6.000.000 VND" 
+                    value={`${stats.revenue} VND`} 
                     icon={Activity}
                     colorClass="bg-green-100 text-green-600"
                     subtitle="+12% from yesterday"
                 />
                 <KPICard 
                     title="Disconnected Devices" 
-                    value="4" 
+                    value={stats.disconnected} 
                     icon={XCircle}
                     colorClass="bg-red-100 text-red-600"
                     subtitle="Requires immediate attention"
                 />
                 <KPICard 
                     title="Daily traffic volume" 
-                    value="2345" 
+                    value={stats.traffic} 
                     icon={Car}
                     colorClass="bg-blue-100 text-blue-600"
                     subtitle="Vehicles passed through gates"
@@ -137,48 +192,40 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* STATUS PANEL (30%) */}
-                <div className="bg-white rounded-[12px] p-6 shadow-sm border border-gray-100 flex flex-col gap-6">
+                <div className="bg-white rounded-[12px] p-6 shadow-sm border border-gray-100 flex flex-col gap-6 h-full">
                     
                     {/* Section 1: Availability */}
                     <div>
                         <h3 className="text-gray-800 text-[16px] font-bold mb-4">Availability</h3>
                         <div className="flex flex-col gap-3">
-                            <div className="flex justify-between items-center border-b border-gray-50 pb-2">
-                                <div className="flex items-center gap-2 text-[14px] font-semibold text-gray-700">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div> Gate C
+                            {stats.gates.map(gate => (
+                                <div key={gate.name} className="flex justify-between items-center border-b border-gray-50 pb-2">
+                                    <div className="flex items-center gap-2 text-[14px] font-semibold text-gray-700">
+                                        <div className={`w-2.5 h-2.5 rounded-full ${gate.color}`}></div> {gate.name}
+                                    </div>
+                                    <span className={`text-[13px] font-medium ${gate.available === 0 ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
+                                        {gate.available} slots left
+                                    </span>
                                 </div>
-                                <span className="text-[13px] text-gray-500 font-medium">120 slots left</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-gray-50 pb-2">
-                                <div className="flex items-center gap-2 text-[14px] font-semibold text-gray-700">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div> Gate A
-                                </div>
-                                <span className="text-[13px] text-gray-500 font-medium">15 slots left</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2 text-[14px] font-semibold text-gray-700">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div> Gate B
-                                </div>
-                                <span className="text-[13px] text-red-500 font-bold">0 slots left</span>
-                            </div>
+                            ))}
                         </div>
                     </div>
 
                     {/* Section 2: Current Session */}
                     <div>
-                        <h3 className="text-gray-800 text-[16px] font-bold mb-4">Current Session Search</h3>
+                        <h3 className="text-gray-800 text-[16px] font-bold mb-4">Current Session</h3>
                         <div className="bg-[#f8f9ff] border border-[#e0e5ff] rounded-xl p-4 relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-[80px] h-[80px] bg-[#2d3a8c] rounded-bl-full opacity-5"></div>
                             <div className="flex flex-col gap-1 mb-3">
-                                <span className="text-[18px] font-black text-[#2d3a8c] tracking-wider">51A - XXXXX</span>
+                                <span className="text-[18px] font-black text-[#2d3a8c] tracking-wider">51A - 123.45</span>
                                 <div className="flex items-center gap-1.5">
                                     <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                    <span className="text-[12px] font-bold text-green-600 uppercase">In progress</span>
+                                    <span className="text-[12px] font-bold text-green-600 uppercase">Active Now</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 text-gray-600 text-[13px] bg-white px-2 py-1.5 rounded-md border border-gray-200">
                                 <MapPin size={14} className="text-[#2d3a8c]" />
-                                <span className="font-medium">Zone B6 - Slot 12</span>
+                                <span className="font-medium">Slot SNS-A01</span>
                             </div>
                         </div>
                     </div>

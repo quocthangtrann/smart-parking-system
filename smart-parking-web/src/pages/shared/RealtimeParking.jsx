@@ -31,6 +31,8 @@ const MOCK_GATES_CS1 = [
     { id: 'gate-3', name: 'Gate 3', lat: 10.7745171, lng: 106.6606778, totalSlots: 120, available: 120, distance: '300 m', time: '4 mins', fare: '3,000 đ', open: '6:00 AM - 10:00 PM', recommended: true }
 ];
 
+import { socket, fetchAPI } from '../../api/config';
+
 export default function RealtimeParking() {
     const navigate = useNavigate();
     const { state } = useLocation();
@@ -41,12 +43,36 @@ export default function RealtimeParking() {
 
     const [campus, setCampus] = useState('CS1');
     const [gates, setGates] = useState(MOCK_GATES_CS1);
+    const [slots, setSlots] = useState([]);
     const [selectedGate, setSelectedGate] = useState(null);
     const [showBottomSheet, setShowBottomSheet] = useState(false);
     const [showSlotModal, setShowSlotModal] = useState(false);
     const [lastUpdated, setLastUpdated] = useState(new Date());
 
     const [selectedSlot, setSelectedSlot] = useState(null);
+
+    useEffect(() => {
+        // Fetch real slots
+        fetchAPI('/parking-slots').then(data => {
+            setSlots(data);
+            updateGateAvailability(data);
+        }).catch(console.error);
+
+        if (socket) {
+            socket.on('slot_update', (updatedSlot) => {
+                setSlots(prev => {
+                    const newSlots = prev.map(s => s.id === updatedSlot.id ? updatedSlot : s);
+                    updateGateAvailability(newSlots);
+                    return newSlots;
+                });
+                setLastUpdated(new Date());
+            });
+        }
+
+        return () => {
+            if (socket) socket.off('slot_update');
+        };
+    }, []);
 
     const handleMapReady = (map, L) => {
         mapInstance.current = map;
@@ -119,22 +145,6 @@ export default function RealtimeParking() {
         renderMarkers(gates);
     }, [gates]);
 
-    // Real-time Simulation
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setGates(prev => prev.map(gate => {
-                const fluctuation = Math.floor(Math.random() * 5) - 2; // -2 to +2
-                let newAvailable = gate.available + fluctuation;
-                if (newAvailable < 0) newAvailable = 0;
-                if (newAvailable > gate.totalSlots) newAvailable = gate.totalSlots;
-                return { ...gate, available: newAvailable };
-            }));
-            setLastUpdated(new Date());
-        }, 5000); // Every 5 seconds
-
-        return () => clearInterval(interval);
-    }, []);
-
     // Sync selectedGate with live data
     useEffect(() => {
         if (selectedGate) {
@@ -144,6 +154,16 @@ export default function RealtimeParking() {
             }
         }
     }, [gates]);
+
+    const updateGateAvailability = (currentSlots) => {
+        setGates(prev => prev.map(gate => {
+            const gateSlots = currentSlots.filter(s => s.gate === gate.name);
+            const available = gateSlots.filter(s => s.state === 'empty').length;
+            // Fallback for demo if no slots in DB for this gate
+            const finalAvailable = gateSlots.length > 0 ? available : gate.available; 
+            return { ...gate, available: finalAvailable };
+        }));
+    };
 
     return (
         <div className="min-h-screen bg-slate-300 flex items-center justify-center font-sans">
@@ -284,7 +304,9 @@ export default function RealtimeParking() {
                                 </button>
                                 <div>
                                     <h3 className="text-[16px] font-bold text-gray-900">Select Slot - {selectedGate.name}</h3>
-                                    <p className="text-[12px] text-gray-500 font-medium">{selectedGate.available} slots available</p>
+                                    <p className="text-[12px] text-gray-500 font-medium">
+                                        {(slots || []).filter(s => s.gate === selectedGate.name && s.state === 'empty').length} slots available
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -308,30 +330,35 @@ export default function RealtimeParking() {
                         {/* Grid */}
                         <div className="flex-1 overflow-y-auto p-[20px] bg-gray-50">
                             <div className="grid grid-cols-5 gap-[12px] max-w-[400px] mx-auto">
-                                {Array.from({ length: 50 }).map((_, i) => {
-                                    const slotId = `A${i + 1}`;
-                                    // Mock occupied logic based on total and available
-                                    const isOccupied = i % 5 === 0 || i % 7 === 0; // deterministic random looking
-                                    const isSelected = selectedSlot === slotId;
+                                {((slots || []).filter(s => s.gate === selectedGate.name).length > 0 
+                                    ? (slots || []).filter(s => s.gate === selectedGate.name)
+                                    : Array.from({ length: 25 }).map((_, i) => ({ id: `${selectedGate.name}-${i+1}`, state: 'empty' }))
+                                ).map((slot) => {
+                                    const isSelected = selectedSlot === slot.id;
+                                    const state = slot.state?.toLowerCase() || 'empty';
 
                                     let cellStyle = "aspect-[2/3] rounded-[8px] border-2 flex items-center justify-center text-[12px] font-bold transition-all cursor-pointer shadow-sm";
                                     
                                     if (isSelected) {
                                         cellStyle += " bg-[#5C2FFF] border-[#5C2FFF] text-white shadow-md transform scale-105";
-                                    } else if (isOccupied) {
+                                    } else if (state === 'active' || state === 'occupied') {
                                         cellStyle += " bg-red-50 border-red-100 text-red-400 cursor-not-allowed opacity-70";
+                                    } else if (state === 'error' || state === 'maintenance') {
+                                        cellStyle += " bg-red-100 border-red-500 text-red-700";
+                                    } else if (state === 'reserved') {
+                                        cellStyle += " bg-purple-50 border-purple-500 text-purple-700";
                                     } else {
                                         cellStyle += " bg-white border-green-500 text-green-700 hover:bg-green-50";
                                     }
 
                                     return (
                                         <button 
-                                            key={slotId}
-                                            disabled={isOccupied}
-                                            onClick={() => setSelectedSlot(isSelected ? null : slotId)}
+                                            key={slot.id}
+                                            disabled={state === 'active' || state === 'occupied'}
+                                            onClick={() => setSelectedSlot(isSelected ? null : slot.id)}
                                             className={cellStyle}
                                         >
-                                            {isOccupied ? <X size={16} /> : slotId}
+                                            {state === 'active' || state === 'occupied' ? <X size={16} /> : slot.id.split('-').pop()}
                                         </button>
                                     );
                                 })}

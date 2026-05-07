@@ -1,71 +1,55 @@
-# Smart Parking System - Admin & Mobile Web
+# Smart Parking System - Complete Fullstack Suite
 
-A professional, high-performance web application for managing and monitoring smart parking infrastructure. This project features a comprehensive Admin Dashboard and a responsive Mobile UI for Students and Lecturers.
-
-## 🚀 Features
-
-### Admin Dashboard
-*   **Infrastructure Monitoring**: Real-time map-based oversight of parking gates and hardware status.
-*   **Device Management**: Detailed diagnostic monitoring for cameras, sensors, and barriers.
-*   **Credential Management**: Centralized RFID card tracking and security blocking.
-*   **Notification System**: Broadcast alerts to users with granular targeting (SMS, Email, Push).
-*   **Fee Policy Management**: Flexible configuration of semester-based parking rates and rules.
-
-### Mobile Experience
-*   **Real-time Map**: Interactive parking availability view for students and lecturers.
-*   **Digital Parking Card**: Dynamic QR-based identification for seamless entry/exit.
-*   **Reservation System**: Dedicated slot booking for lecturers.
-*   **Billing History**: Transparent oversight of parking sessions and payments.
-
-## 🛠 Tech Stack
-*   **Frontend**: React (Vite)
-*   **Styling**: Tailwind CSS
-*   **Icons**: Lucide React
-*   **Maps**: Leaflet.js
-*   **Routing**: React Router DOM
-
-## 🏁 Getting Started
-
-### Prerequisites
-*   [Node.js](https://nodejs.org/) (v18 or higher recommended)
-*   npm or yarn
-
-### Installation
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/your-repo/smart-parking-system.git
-    cd smart-parking-system/smart-parking-web
-    ```
-
-2.  **Install dependencies**
-    ```bash
-    npm install
-    ```
-
-### Running the Application
-*   **Development Mode**:
-    ```bash
-    npm run dev
-    ```
-    The application will be available at `http://localhost:5173`.
-
-*   **Production Build**:
-    ```bash
-    npm run build
-    ```
-    The optimized assets will be generated in the `dist` folder.
+A comprehensive Smart Parking Management System integrating IoT simulation, real-time backend monitoring, and a professional React-based administration and mobile interface.
 
 ## 📁 Project Structure
 ```text
-src/
-├── components/     # Reusable UI components (Maps, KPI cards, etc.)
-├── layouts/        # Page wrappers (AdminLayout, MobileLayout)
-├── pages/
-│   ├── admin/      # Admin dashboard modules (Devices, Notifications, etc.)
-│   ├── student/    # Student-specific mobile views
-│   ├── lecturer/   # Lecturer-specific mobile views
-│   └── shared/     # Common features (Map, Billing, Settings)
-└── styles/         # Global CSS and themes
+smart-parking-system/
+├── smart-parking-backend/   # Node.js + Express + SQLite + Socket.io
+├── smart-parking-web/       # React (Vite) + Tailwind CSS
+└── fake-parking-place/      # IoT Simulation (Python + MQTT)
 ```
 
+## 🛠 Tech Stack
+- **Frontend**: React, Tailwind CSS, Lucide Icons, Leaflet.js, Socket.io-client.
+- **Backend**: Node.js, Express, Sequelize, SQLite3, Socket.io, MQTT.js.
+- **IoT Simulation**: Python, Paho-MQTT, Mock sensor scripts.
 
+## 🏁 Startup Instructions
+
+### 1. Initialize & Start Backend
+Open a terminal in `smart-parking-backend`:
+```bash
+cd smart-parking-backend
+npm install
+npm run seed     # Initialize database with sample accounts
+npm run dev      # Start backend on port 5000
+```
+
+### 2. Start Frontend
+Open a terminal in `smart-parking-web`:
+```bash
+cd smart-parking-web
+npm install
+npm run dev      # Start frontend on port 5173
+```
+
+### 3. Start IoT Simulation
+Open a terminal in `fake-parking-place`:
+```bash
+cd fake-parking-place
+# 1. Start MQTT Broker
+python MQTT_broker.py
+# 2. Start Simulator App
+python Fake_parking/simulator_app.py
+```
+
+## 🔑 Sample Accounts (Password: 123)
+- **Student**: `student1`, `student2`, `student3`
+- **Lecturer**: `lecturer1`, `lecturer2`
+- **Admin**: `admin1`, `admin2`
+
+## 📡 Real-time Logic
+- **Slot States**: Green (Available), Gray (Empty/Inactive), Red (Error), Purple (Reserved).
+- **IoT Connection**: Simulated sensors publish to MQTT, backend bridges data to frontend via Socket.io.
+- **Auth**: JWT-based login with role-based routing (Student/Lecturer/Admin).

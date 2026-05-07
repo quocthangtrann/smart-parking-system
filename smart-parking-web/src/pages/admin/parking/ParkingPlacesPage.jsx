@@ -1,16 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Mail, FileText, ShieldAlert } from 'lucide-react';
 import KPICard from '../devices/KPICard';
 import ParkingMap from './ParkingMap';
 import SlotStateTable from './SlotStateTable';
 import ParkingSlotModal from './ParkingSlotModal';
 import MapModal from '../devices/MapModal';
+import { socket, fetchAPI } from '../../../api/config';
 
 export default function ParkingPlacesPage() {
+    const [slots, setSlots] = useState([]);
     const [selectedSlotId, setSelectedSlotId] = useState(null);
     const [isMapExpanded, setIsMapExpanded] = useState(false);
     const [activeGate, setActiveGate] = useState(null);
     const [isSlotModalOpen, setIsSlotModalOpen] = useState(false);
+
+    useEffect(() => {
+        // Fetch initial slots
+        fetchAPI('/parking-slots').then(data => setSlots(data)).catch(console.error);
+
+        // Listen for realtime updates
+        if (socket) {
+            socket.on('slot_update', (updatedSlot) => {
+                setSlots(prev => prev.map(s => s.id === updatedSlot.id ? updatedSlot : s));
+            });
+        }
+
+        return () => {
+            if (socket) socket.off('slot_update');
+        };
+    }, []);
 
     const handleSlotSelect = (slotId) => {
         setSelectedSlotId(slotId);
@@ -36,7 +54,7 @@ export default function ParkingPlacesPage() {
                 <div className="flex-1 min-w-[200px]">
                     <KPICard 
                         title="Notifications" 
-                        value="140" 
+                        value={slots.length > 0 ? "140" : "0"} 
                         icon={Bell}
                         iconColor="text-indigo-600"
                     />
@@ -44,7 +62,7 @@ export default function ParkingPlacesPage() {
                 <div className="flex-1 min-w-[200px]">
                     <KPICard 
                         title="Unread" 
-                        value="6" 
+                        value={slots.filter(s => s.state === 'error').length} 
                         icon={Mail}
                         iconColor="text-rose-500"
                     />
@@ -60,7 +78,7 @@ export default function ParkingPlacesPage() {
                 <div className="flex-1 min-w-[200px]">
                     <KPICard 
                         title="Security alert" 
-                        value="2" 
+                        value={slots.filter(s => s.state === 'error').length} 
                         icon={ShieldAlert}
                         iconColor="text-red-600"
                     />
@@ -81,6 +99,7 @@ export default function ParkingPlacesPage() {
                 {/* RIGHT: STATE OF SLOTS (50%) */}
                 <div style={{ width: '610px', height: '594px' }} className="shrink-0 overflow-hidden rounded-2xl border border-gray-100 shadow-sm ml-auto bg-white">
                     <SlotStateTable 
+                        slots={slots}
                         selectedSlotId={selectedSlotId}
                         onSlotSelect={handleSlotSelect}
                     />
@@ -92,6 +111,7 @@ export default function ParkingPlacesPage() {
                 isOpen={isSlotModalOpen}
                 onClose={() => setIsSlotModalOpen(false)}
                 gateName={activeGate?.name || 'Gate 1'}
+                slots={slots.filter(s => s.gate === activeGate?.name)}
             />
 
             {/* MAP EXPAND MODAL */}

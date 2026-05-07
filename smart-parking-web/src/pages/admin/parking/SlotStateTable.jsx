@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
 import { Search, X, CheckCircle, AlertCircle, Circle } from 'lucide-react';
 
-const MOCK_SLOTS = [
-    { id: 'SNS-A01', zone: 'A', sensor: 'Offline', camera: 'Online', barrier: 'Error', state: 'ERROR', details: 'Sensor disconnected', status: 'error' },
-    { id: 'SNS-A02', zone: 'B', sensor: 'Online', camera: 'Online', barrier: 'Online', state: 'ACTIVE', details: 'Working normally', status: 'active' },
-    { id: 'SNS-A03', zone: 'C', sensor: 'Online', camera: 'Online', barrier: 'Online', state: 'EMPTY', details: 'No vehicle detected', status: 'empty' },
-    { id: 'SNS-A04', zone: 'D', sensor: 'Maintenance', camera: 'Offline', barrier: 'Error', state: 'ERROR', details: 'Camera unavailable', status: 'error' },
-    { id: 'SNS-A10', zone: 'A', sensor: 'Online', camera: 'Online', barrier: 'Online', state: 'ACTIVE', details: 'Working normally', status: 'active' },
-];
-
-export default function SlotStateTable({ selectedSlotId, onSlotSelect }) {
+export default function SlotStateTable({ slots, selectedSlotId, onSlotSelect }) {
     const [searchQuery, setSearchQuery] = useState('');
 
     const getStatusStyle = (state) => {
-        switch (state.toUpperCase()) {
-            case 'ACTIVE': return 'text-green-500 bg-green-50';
-            case 'ERROR': return 'text-red-500 bg-red-50';
-            case 'EMPTY': return 'text-gray-400 bg-gray-50';
+        switch (state.toLowerCase()) {
+            case 'active': return 'text-green-500 bg-green-50 border-green-200';
+            case 'occupied': return 'text-green-500 bg-green-50 border-green-200';
+            case 'error': return 'text-red-500 bg-red-50 border-red-200';
+            case 'maintenance': return 'text-red-500 bg-red-50 border-red-200';
+            case 'empty': return 'text-gray-400 bg-gray-50 border-gray-200';
+            case 'reserved': return 'text-purple-500 bg-purple-50 border-purple-200';
             default: return 'text-gray-500 bg-gray-50';
         }
     };
@@ -27,9 +22,9 @@ export default function SlotStateTable({ selectedSlotId, onSlotSelect }) {
         return 'text-orange-500'; // Maintenance
     };
 
-    const filteredSlots = MOCK_SLOTS.filter(s => 
+    const filteredSlots = (slots || []).filter(s => 
         s.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        s.zone.toLowerCase().includes(searchQuery.toLowerCase())
+        s.zone?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (

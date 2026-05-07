@@ -3,9 +3,9 @@ import { Maximize2, ChevronDown, MapPin } from 'lucide-react';
 import SharedMap from '../../../components/SharedMap';
 
 const GATES = [
-  { id: "gate-1", name: "Parking Gate 1", lat: 10.7716052, lng: 106.6586973 },
-  { id: "gate-2", name: "Parking Gate 2", lat: 10.7728268, lng: 106.6581446 },
-  { id: "gate-3", name: "Parking Gate 3", lat: 10.7745171, lng: 106.6606778 }
+  { id: "gate-1", name: "Gate 1", lat: 10.7716052, lng: 106.6586973 },
+  { id: "gate-2", name: "Gate 2", lat: 10.7728268, lng: 106.6581446 },
+  { id: "gate-3", name: "Gate 3", lat: 10.7745171, lng: 106.6606778 }
 ];
 
 const AVERAGE_CENTER = [10.772983, 106.659173];

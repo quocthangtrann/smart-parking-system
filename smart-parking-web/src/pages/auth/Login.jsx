@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginInputField, LoginButton } from '../../components/SharedUI';
+import { fetchAPI } from '../../api/config';
 
 // Import ảnh từ thư mục assets
 import logoBk from '../../assets/logobk.png';
@@ -11,18 +12,30 @@ export default function Login() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
-    const handleLogin = (e) => {
+    const [error, setError] = useState('');
+
+    const handleLogin = async (e) => {
         e.preventDefault();
-        if (username === 'admin' && password === '123') {
-            const user = {
-                name: 'Nguyen Van A',
-                id: 'ADMIN01',
-                role: 'System Administrator',
-                avatarUrl: null,
-            };
-            navigate('/admin/dashboard', { state: { user } });
-        } else {
-            alert('Sai thông tin đăng nhập!\nVui lòng thử: admin / 123');
+        setError('');
+        try {
+            const data = await fetchAPI('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
+
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+
+            if (data.user.role === 'admin') {
+                navigate('/admin/dashboard', { state: { user: data.user } });
+            } else if (data.user.role === 'student') {
+                navigate('/student/home', { state: { user: data.user } });
+            } else {
+                navigate('/lecturer/home', { state: { user: data.user } });
+            }
+        } catch (err) {
+            setError(err.message);
+            alert('Đăng nhập thất bại: ' + err.message);
         }
     };
 

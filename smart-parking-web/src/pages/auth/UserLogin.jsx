@@ -1,35 +1,36 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logoBk from '../../assets/logobk.png';
+import { fetchAPI } from '../../api/config';
 
 export default function UserMobileLogin() {
     const navigate = useNavigate();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
+        setError('');
+        try {
+            const data = await fetchAPI('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
 
-        if (username === 'student' && password === '123') {
-            const user = {
-                name: 'Nguyen Van An',
-                id: '2211234',
-                role: 'Student',
-                department: 'Computer Science & Engineering',
-                avatarUrl: null,
-            };
-            navigate('/student/home', { state: { user } });
-        } else if (username === 'lecturer' && password === '123') {
-            const user = {
-                name: 'Dr. Tran Thi Bich',
-                id: 'GV0056',
-                role: 'Lecturer',
-                department: 'Faculty of Computer Science',
-                avatarUrl: null,
-            };
-            navigate('/lecturer/home', { state: { user } });
-        } else {
-            alert('Sai thông tin đăng nhập!\nVui lòng thử:\n- SV: student / 123\n- GV: lecturer / 123');
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+
+            if (data.user.role === 'student') {
+                navigate('/student/home', { state: { user: data.user } });
+            } else if (data.user.role === 'lecturer') {
+                navigate('/lecturer/home', { state: { user: data.user } });
+            } else {
+                navigate('/admin/dashboard', { state: { user: data.user } });
+            }
+        } catch (err) {
+            setError(err.message);
+            alert('Đăng nhập thất bại: ' + err.message);
         }
     };
     return (

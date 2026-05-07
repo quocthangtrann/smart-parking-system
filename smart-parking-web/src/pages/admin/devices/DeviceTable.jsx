@@ -4,19 +4,20 @@ import { Search, X } from 'lucide-react';
 export default function DeviceTable({ devices, selectedDeviceId, onDeviceSelect }) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
+  const getStatusColor = (state) => {
+    if (!state) return 'text-gray-500';
+    switch (state.toLowerCase()) {
       case 'online': return 'text-green-500';
-      case 'disconnected': return 'text-red-500';
+      case 'offline': return 'text-red-500';
+      case 'error': return 'text-red-500';
       case 'maintenance': return 'text-orange-500';
       default: return 'text-gray-500';
     }
   };
 
   const filteredDevices = devices.filter(d => 
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    d.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    d.position.toLowerCase().includes(searchQuery.toLowerCase())
+    (d.name || d.id).toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (d.position || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -70,12 +71,12 @@ export default function DeviceTable({ devices, selectedDeviceId, onDeviceSelect 
                 `}
               >
                 <td className="py-3 px-4 first:rounded-l-lg font-medium text-gray-700">{device.id}</td>
-                <td className="py-3 px-4 font-bold text-gray-900">{device.name}</td>
-                <td className="py-3 px-4 text-gray-600">{device.position}</td>
-                <td className={`py-3 px-4 font-bold uppercase text-[11px] ${getStatusColor(device.status)}`}>
-                  {device.status}
+                <td className="py-3 px-4 font-bold text-gray-900">{device.name || 'Device'}</td>
+                <td className="py-3 px-4 text-gray-600">{device.position || 'N/A'}</td>
+                <td className={`py-3 px-4 font-bold uppercase text-[11px] ${getStatusColor(device.state)}`}>
+                  {device.state || 'UNKNOWN'}
                 </td>
-                <td className="py-3 px-4 text-gray-500 last:rounded-r-lg">{device.response}</td>
+                <td className="py-3 px-4 text-gray-500 last:rounded-r-lg">{device.responseTime}ms</td>
               </tr>
             ))}
             {filteredDevices.length === 0 && (

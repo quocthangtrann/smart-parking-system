@@ -1,19 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, WifiOff, Wifi, Wrench } from 'lucide-react';
 import KPICard from './KPICard';
 import DeviceMap from './DeviceMap';
 import DeviceTable from './DeviceTable';
 import MapModal from './MapModal';
-
-const MOCK_GATES = [
-    { id: 'gate-1', name: 'Gate 1', status: 'Online', position: 'North Entrance', response: '12ms' },
-    { id: 'gate-2', name: 'Gate 2', status: 'Online', position: 'South Entrance', response: '8ms' },
-    { id: 'gate-3', name: 'Gate 3', status: 'Online', position: 'Main Plaza', response: '15ms' },
-];
+import { fetchAPI, socket } from '../../../api/config';
 
 export default function DevicesPage() {
+    const [devices, setDevices] = useState([]);
     const [selectedGateId, setSelectedGateId] = useState(null);
     const [isMapExpanded, setIsMapExpanded] = useState(false);
+
+    const loadDevices = async () => {
+        try {
+            const data = await fetchAPI('/devices');
+            setDevices(data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    useEffect(() => {
+        loadDevices();
+        if (socket) {
+            socket.on('device_update', (updatedDevice) => {
+                setDevices(prev => prev.map(d => d.id === updatedDevice.id ? updatedDevice : d));
+            });
+        }
+        return () => {
+            if (socket) socket.off('device_update');
+        };
+    }, []);
 
     const handleGateClick = (gateId) => {
         setSelectedGateId(gateId);
@@ -34,7 +51,7 @@ export default function DevicesPage() {
                 <div className="flex-1 min-w-[200px]">
                     <KPICard 
                         title="All Devices" 
-                        value="140" 
+                        value={devices.length} 
                         icon={Settings}
                         iconColor="text-gray-600"
                     />
@@ -42,7 +59,7 @@ export default function DevicesPage() {
                 <div className="flex-1 min-w-[200px]">
                     <KPICard 
                         title="Disconnected" 
-                        value="30" 
+                        value={devices.filter(d => d.state === 'offline' || d.state === 'error').length} 
                         icon={WifiOff}
                         iconColor="text-red-500"
                     />
@@ -50,7 +67,7 @@ export default function DevicesPage() {
                 <div className="flex-1 min-w-[200px]">
                     <KPICard 
                         title="Online" 
-                        value="122" 
+                        value={devices.filter(d => d.state === 'online').length} 
                         icon={Wifi}
                         iconColor="text-purple-600"
                     />
@@ -58,7 +75,7 @@ export default function DevicesPage() {
                 <div className="flex-1 min-w-[200px]">
                     <KPICard 
                         title="Maintenance" 
-                        value="140" 
+                        value={devices.filter(d => d.state === 'maintenance').length} 
                         icon={Wrench}
                         iconColor="text-orange-500"
                     />
@@ -74,13 +91,14 @@ export default function DevicesPage() {
                         selectedDeviceId={selectedGateId}
                         onDeviceSelect={handleGateClick}
                         onExpand={() => setIsMapExpanded(true)}
+                        devices={devices}
                     />
                 </div>
 
                 {/* RIGHT PANEL: DEVICE LIST (W: 610, H: 594) */}
                 <div style={{ width: '610px', height: '594px' }} className="shrink-0 overflow-hidden rounded-xl border border-gray-100 shadow-sm ml-auto bg-white">
                     <DeviceTable 
-                        devices={MOCK_GATES}
+                        devices={devices}
                         selectedDeviceId={selectedGateId}
                         onDeviceSelect={handleGateClick}
                     />
