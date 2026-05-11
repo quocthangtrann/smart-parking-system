@@ -25,7 +25,9 @@ export default function AdminLayout() {
     const location = useLocation();
     
     // Check if user exists, otherwise mock
-    const user = location.state?.user || { name: 'Nguyen Van A', role: 'System Administrator' };
+    const rawUser = location.state?.user || { name: 'Nguyen Van A', role: 'System Administrator' };
+    // Backend returns 'fullName', but layout uses 'name' — normalize here
+    const user = { ...rawUser, name: rawUser.name || rawUser.fullName || rawUser.username || 'Admin' };
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [showLogoutMenu, setShowLogoutMenu] = useState(false);
 

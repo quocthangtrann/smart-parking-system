@@ -23,6 +23,8 @@ app.use('/api/sessions', require('./routes/sessions'));
 app.use('/api/devices', require('./routes/devices'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/billing', require('./routes/billing'));
+app.use('/api/fee-policy', require('./routes/feePolicy'));
+app.use('/api/analytics', require('./routes/analytics'));
 
 // Socket.io connection
 io.on('connection', (socket) => {

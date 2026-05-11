@@ -66,6 +66,17 @@ const Billing = sequelize.define('Billing', {
     dueDate: { type: DataTypes.DATE }
 });
 
+const FeePolicy = sequelize.define('FeePolicy', {
+    id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    vehicleType: { type: DataTypes.STRING, allowNull: false },
+    daytimeRate: { type: DataTypes.INTEGER, allowNull: false },
+    eveningRate: { type: DataTypes.INTEGER, allowNull: false },
+    timeThreshold: { type: DataTypes.STRING, allowNull: false }, // e.g., '18:00'
+    effectiveFrom: { type: DataTypes.DATE, allowNull: false },
+    effectiveTo: { type: DataTypes.DATE },
+    isActive: { type: DataTypes.BOOLEAN, defaultValue: true }
+});
+
 // Associations
 User.hasMany(Vehicle);
 Vehicle.belongsTo(User);
@@ -90,5 +101,6 @@ module.exports = {
     ParkingSession,
     Device,
     Notification,
-    Billing
+    Billing,
+    FeePolicy
 };

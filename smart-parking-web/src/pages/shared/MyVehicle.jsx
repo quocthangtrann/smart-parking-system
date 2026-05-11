@@ -1,25 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Trash2, Plus, Bike, Car as CarIcon, X } from 'lucide-react';
 import logoBk from '../../assets/logobk.png';
+import { fetchAPI } from '../../api/config';
 
-// Global sync mechanism
-export const getStoredVehicles = () => {
-    const saved = localStorage.getItem('vehicles');
-    if (saved) return JSON.parse(saved);
-    
-    const initial = [
-        { id: '1', plateNumber: '51A-XXXXX', type: 'Motorbike', brand: 'Honda', ownerName: 'Nguyen Van A', isDefault: true },
-        { id: '2', plateNumber: '59B-12345', type: 'Car', brand: 'Toyota', ownerName: 'Nguyen Van A', isDefault: false }
-    ];
-    localStorage.setItem('vehicles', JSON.stringify(initial));
-    return initial;
-};
-
-export const saveVehicles = (vehicles) => {
-    localStorage.setItem('vehicles', JSON.stringify(vehicles));
-    window.dispatchEvent(new Event('vehicles_updated'));
-};
+// Vehicles are now fetched from API
 
 const Header = ({ onBack }) => (
     <header className="h-[77px] bg-[#210F7A] flex items-center px-[17px] shrink-0 z-10 shadow-md">
@@ -46,7 +31,11 @@ const ToggleSwitch = ({ isOn, onToggle }) => (
 
 export default function MyVehicle() {
     const navigate = useNavigate();
-    const [vehicles, setVehicles] = useState(getStoredVehicles());
+    const { state } = useLocation();
+    // Resolve user from navigation state or localStorage fallback
+    const user = state?.user ?? JSON.parse(localStorage.getItem('user') || 'null');
+
+    const [vehicles, setVehicles] = useState([]);
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -59,48 +48,63 @@ export default function MyVehicle() {
     const [owner, setOwner] = useState('Nguyen Van A');
     const [isDefault, setIsDefault] = useState(false);
 
+    // FIX #5: load vehicles from API on mount, fall back to localStorage
     useEffect(() => {
-        const handleUpdate = () => setVehicles(getStoredVehicles());
-        window.addEventListener('vehicles_updated', handleUpdate);
-        return () => window.removeEventListener('vehicles_updated', handleUpdate);
+        if (user?.id) {
+            fetchAPI(`/vehicles/user/${user.id}`)
+                .then(data => {
+                    if (data.length > 0) {
+                        setVehicles(data);
+                    }
+                })
+                .catch(console.error);
+        }
     }, []);
 
-    const handleAddVehicle = () => {
-        if (!plate || !owner) return alert("License plate and Owner name are required.");
-        
-        let newVehicles = [...vehicles];
-        
-        if (isDefault || newVehicles.length === 0) {
-            newVehicles = newVehicles.map(v => ({ ...v, isDefault: false }));
+    const handleAddVehicle = async () => {
+        if (!plate || !owner) return alert('License plate and Owner name are required.');
+
+        try {
+            // FIX #5: POST to backend API
+            const newVehicle = await fetchAPI('/vehicles', {
+                method: 'POST',
+                body: JSON.stringify({
+                    licensePlate: plate,
+                    vehicleType: type,
+                    brand,
+                    isDefault: isDefault || vehicles.length === 0,
+                    UserId: user?.id
+                })
+            });
+
+            const updated = isDefault || vehicles.length === 0
+                ? vehicles.map(v => ({ ...v, isDefault: false })).concat({ ...newVehicle, ownerName: owner })
+                : [...vehicles, { ...newVehicle, ownerName: owner }];
+
+            setVehicles(updated);
+        } catch (err) {
+            console.error(err);
+            alert('Failed to add vehicle: ' + err.message);
         }
 
-        const newVehicle = {
-            id: Date.now().toString(),
-            plateNumber: plate,
-            type,
-            brand,
-            ownerName: owner,
-            isDefault: isDefault || newVehicles.length === 0
-        };
-
-        newVehicles.push(newVehicle);
-        saveVehicles(newVehicles);
-        
         setShowAddModal(false);
         setPlate(''); setBrand(''); setIsDefault(false);
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (!vehicleToDelete) return;
-
-        let newVehicles = vehicles.filter(v => v.id !== vehicleToDelete.id);
-        
-        // If deleted was default and there are remaining vehicles, set the first as default
-        if (vehicleToDelete.isDefault && newVehicles.length > 0) {
-            newVehicles[0].isDefault = true;
+        try {
+            // FIX #5: DELETE via backend API
+            await fetchAPI(`/vehicles/${vehicleToDelete.id}`, { method: 'DELETE' });
+        } catch (err) {
+            console.error('Delete failed, removing locally only:', err);
         }
 
-        saveVehicles(newVehicles);
+        let newVehicles = vehicles.filter(v => v.id !== vehicleToDelete.id);
+        if (vehicleToDelete.isDefault && newVehicles.length > 0) {
+            newVehicles[0] = { ...newVehicles[0], isDefault: true };
+        }
+        setVehicles(newVehicles);
         setShowDeleteModal(false);
         setVehicleToDelete(null);
     };
@@ -134,14 +138,14 @@ export default function MyVehicle() {
                                         </div>
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[16px] font-bold text-gray-900">{v.plateNumber}</span>
+                                                <span className="text-[16px] font-bold text-gray-900">{v.licensePlate}</span>
                                                 {v.isDefault && (
                                                     <span className="bg-[#5C2FFF] text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
                                                         Default
                                                     </span>
                                                 )}
                                             </div>
-                                            <span className="text-[12px] text-gray-500">{v.type} {v.brand ? `• ${v.brand}` : ''}</span>
+                                            <span className="text-[12px] text-gray-500">{v.vehicleType} {v.brand ? `• ${v.brand}` : ''}</span>
                                         </div>
                                     </div>
                                     <button 
@@ -260,7 +264,7 @@ export default function MyVehicle() {
                             </div>
                             <h3 className="text-[18px] font-bold text-gray-900 mb-[8px]">Delete Vehicle?</h3>
                             <p className="text-[14px] text-gray-600 mb-[24px]">
-                                License Plate: <span className="font-bold text-gray-900">{vehicleToDelete.plateNumber}</span><br/>
+                                License Plate: <span className="font-bold text-gray-900">{vehicleToDelete.licensePlate}</span><br/>
                                 This action cannot be undone.
                             </p>
                             

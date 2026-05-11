@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Menu, MapPin, AlertTriangle } from 'lucide-react';
 import logoBk from '../../assets/logobk.png';
+import { fetchAPI, socket } from '../../api/config';
 
 const MOCK_SESSION_IN_PROGRESS = {
     status: 'in_progress',
@@ -70,9 +71,46 @@ const Header = ({ onBack }) => (
 export default function SessionDetail() {
     const navigate = useNavigate();
     const { state } = useLocation();
-    
-    // For demo purposes, we cycle through the 3 states when the user clicks the menu icon
-    const [sessionData, setSessionData] = useState(MOCK_SESSION_IN_PROGRESS); 
+    const user = state?.user ?? JSON.parse(localStorage.getItem('user') || 'null');
+
+    const [sessionData, setSessionData] = useState(MOCK_SESSION_IN_PROGRESS);
+
+    // FIX #9/#12: load real active session from API, listen to session_update socket
+    useEffect(() => {
+        if (user?.id) {
+            fetchAPI(`/sessions/user/${user.id}/active`)
+                .then(data => {
+                    if (data) {
+                        setSessionData({
+                            status: 'in_progress',
+                            hasAlert: false,
+                            plateNumber: data.Vehicle ? `🚗 ${data.Vehicle.licensePlate}` : '🚗 Unknown',
+                            duration: (() => {
+                                const ms = Date.now() - new Date(data.enterTime).getTime();
+                                const h = Math.floor(ms / 3600000);
+                                const m = Math.floor((ms % 3600000) / 60000);
+                                return `${h}h ${m}m`;
+                            })(),
+                            entryTime: new Date(data.enterTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            exitTime: null,
+                            location: { parkingName: data.gate, zone: `Slot: ${data.slot}` },
+                            timeline: [{ time: new Date(data.enterTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), text: `Entered at ${data.gate}` }]
+                        });
+                    }
+                })
+                .catch(console.error);
+        }
+
+        // FIX #12: listen to session_update socket for check-out events
+        if (socket) {
+            socket.on('session_update', ({ type }) => {
+                if (type === 'checkout') {
+                    setSessionData(prev => ({ ...prev, status: 'finished', exitTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }));
+                }
+            });
+        }
+        return () => { if (socket) socket.off('session_update'); };
+    }, [user?.id]);
     
     const toggleState = () => {
         if (sessionData.status === 'in_progress') setSessionData(MOCK_SESSION_FINISHED);

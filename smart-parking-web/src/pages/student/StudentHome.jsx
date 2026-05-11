@@ -1,13 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Filter, IdCard, Car, Receipt, Map } from 'lucide-react';
+import { Filter, IdCard, Car, Receipt, Map, Info } from 'lucide-react';
 import { TopIconBar, GateItem, ActionCard, SessionCard } from '../../components/SharedUI';
+import { fetchAPI } from '../../api/config';
 import logoBk from '../../assets/logobk.png';
 
 export default function StudentHome() {
     const navigate = useNavigate();
     const { state } = useLocation();
     const user = state?.user;
+
+    const [policies, setPolicies] = useState([]);
+
+    useEffect(() => {
+        fetchAPI('/fee-policy')
+            .then(data => setPolicies(data || []))
+            .catch(console.error);
+    }, []);
+
+    const formatCurrency = (amount) => amount.toLocaleString('vi-VN') + 'đ';
 
     return (
         // Outer page — centres the phone frame on large screens
@@ -42,7 +53,7 @@ export default function StudentHome() {
 
                         {/* GREETING TEXT */}
                         <h2 className="text-[#210F7A] text-[18px] font-semibold">
-                            Hi, Nguyen Van A!
+                            Hi, {user?.fullName || 'Student'}!
                         </h2>
 
                         {/* PARKING AVAILABILITY */}
@@ -68,6 +79,36 @@ export default function StudentHome() {
                                 <ActionCard icon={<Receipt size={28} />}   label="History & Billing" onClick={() => navigate('/billing', { state: { user } })} />
                                 <ActionCard icon={<Map size={28} />}       label="Real-time Parking" onClick={() => navigate('/map', { state: { user } })} />
                                 <ActionCard icon={<Car size={28} />}       label="Vehicle" onClick={() => navigate('/vehicles', { state: { user } })} />
+                            </div>
+                        </section>
+
+                        {/* PRICING INFORMATION */}
+                        <section className="flex flex-col gap-[12px]">
+                            <h3 className="text-[14px] font-bold text-black uppercase tracking-wide flex items-center gap-2">
+                                Pricing Information
+                                <Info size={14} className="text-blue-500" />
+                            </h3>
+                            <div className="bg-white border border-gray-200 rounded-[12px] p-[14px] shadow-sm flex flex-col gap-3">
+                                {policies.length === 0 ? (
+                                    <p className="text-[13px] text-gray-500 text-center py-2">Loading pricing...</p>
+                                ) : (
+                                    policies.map(policy => (
+                                        <div key={policy.id} className="flex flex-col gap-1.5 border-b border-gray-100 last:border-0 pb-3 last:pb-0">
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-bold text-[#210F7A] text-[14px] uppercase">{policy.vehicleType}</span>
+                                                <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold uppercase border border-emerald-100">HK252 Active</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-[12px] text-gray-600">
+                                                <span>Before {policy.timeThreshold}</span>
+                                                <span className="font-bold text-gray-900">{formatCurrency(policy.daytimeRate)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-[12px] text-gray-600">
+                                                <span>After {policy.timeThreshold} & Sunday</span>
+                                                <span className="font-bold text-gray-900">{formatCurrency(policy.eveningRate)}</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </section>
 

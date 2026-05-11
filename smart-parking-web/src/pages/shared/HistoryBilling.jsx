@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Info, ChevronDown, X } from 'lucide-react';
 import logoBk from '../../assets/logobk.png';
-import { getStoredVehicles } from './MyVehicle';
+import { fetchAPI, socket } from '../../api/config';
 
 // ─────────────────────────────────────────────
 // MOCK DATA
@@ -13,28 +13,6 @@ const MOCK_USER = {
     role: 'student', // 'student' | 'lecturer'
 };
 
-const MOCK_ACTIVITIES = [
-    // FEB ACTIVITIES (Current Month)
-    { id: 1, date: 'Feb. 26, 2026', plate: '🏍 51A - XXXXX', time: '06:22 - now', amount: 3000, status: 'unpaid', type: 'student' },
-    { id: 2, date: 'Feb. 26, 2026', plate: '🚗 59B - 12345', time: '08:00 - 12:00', amount: 10000, status: 'paid', type: 'student' },
-    { id: 3, date: 'Feb. 25, 2026', plate: '🏍 51A - XXXXX', time: '07:15 - 17:30', amount: 0, status: 'exempt', type: 'lecturer' },
-    { id: 4, date: 'Feb. 25, 2026', plate: '🏍 51A - XXXXX', time: '09:00 - 11:00', amount: 5000, status: 'unpaid', type: 'student' },
-    
-    // JAN ACTIVITIES (Overdue Month)
-    { id: 5, date: 'Jan. 20, 2026', plate: '🏍 51A - XXXXX', time: '14:00 - 18:00', amount: 12000, status: 'overdue', type: 'student' },
-    { id: 6, date: 'Jan. 15, 2026', plate: '🚗 59B - 12345', time: '09:00 - 17:00', amount: 20000, status: 'overdue', type: 'student' },
-    
-    // DEC ACTIVITIES (Paid Month)
-    { id: 7, date: 'Dec. 10, 2025', plate: '🏍 51A - XXXXX', time: '08:00 - 12:00', amount: 15000, status: 'paid', type: 'student' },
-];
-
-const MOCK_INVOICES = [
-    { id: 101, month: 'Feb, 2026', amount: 8000, state: 'normal', note: 'Due today' },
-    { id: 102, month: 'Jan, 2026', amount: 32000, state: 'overdue', note: 'Jan 28, 2026' },
-    { id: 103, month: 'Dec, 2025', amount: 15000, state: 'paid' },
-    { id: 104, month: 'Mar, 2026', amount: 0, state: 'upcoming', note: 'Feb 28' },
-    { id: 105, month: 'Nov, 2025', amount: 0, state: 'none' },
-];
 
 // ─────────────────────────────────────────────
 // REUSABLE COMPONENTS
@@ -160,20 +138,66 @@ export default function HistoryBilling() {
     // Global State
     const [selectedTab, setSelectedTab] = useState('history'); // "history" | "billing"
     
-    const [vehicles, setVehicles] = useState(getStoredVehicles());
-    useEffect(() => {
-        const handleUpdate = () => setVehicles(getStoredVehicles());
-        window.addEventListener('vehicles_updated', handleUpdate);
-        return () => window.removeEventListener('vehicles_updated', handleUpdate);
-    }, []);
+    const [vehicles, setVehicles] = useState([]);
 
     const [filters, setFilters] = useState({
         vehicle: 'all',
         month: 'Feb, 2026',
         status: 'all',
     });
-    const [activities, setActivities] = useState(MOCK_ACTIVITIES);
-    const [invoices, setInvoices] = useState(MOCK_INVOICES);
+    const [activities, setActivities] = useState([]);
+    const [invoices, setInvoices] = useState([]);
+
+    // FIX #6/#12: load real sessions and billing from API, subscribe to billing_update socket
+    useEffect(() => {
+        if (user?.id) {
+            // Load vehicles
+            fetchAPI(`/vehicles/user/${user.id}`)
+                .then(data => setVehicles(data))
+                .catch(console.error);
+
+            // Load parking sessions history
+            fetchAPI(`/sessions/user/${user.id}`)
+                .then(data => {
+                    if (data.length > 0) {
+                        const mapped = data.map(s => ({
+                            id: s.id,
+                            date: new Date(s.enterTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                            plate: s.Vehicle ? `🏍 ${s.Vehicle.licensePlate}` : '🚗 Unknown',
+                            time: `${new Date(s.enterTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${s.exitTime ? new Date(s.exitTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now'}`,
+                            amount: s.fee || 0,
+                            status: s.status === 'active' ? 'unpaid' : 'paid',
+                            type: user.role === 'lecturer' ? 'lecturer' : 'student'
+                        }));
+                        setActivities(mapped);
+                    }
+                })
+                .catch(console.error);
+
+            // Load billing invoices
+            fetchAPI(`/billing/user/${user.id}`)
+                .then(data => {
+                    if (data.length > 0) {
+                        const mapped = data.map(b => ({
+                            id: b.id,
+                            month: new Date(b.dueDate || b.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                            amount: b.amount,
+                            state: b.status === 'paid' ? 'paid' : 'normal',
+                        }));
+                        setInvoices(mapped);
+                    }
+                })
+                .catch(console.error);
+        }
+
+        // FIX #12: listen to billing_update socket to refresh UI in real-time
+        if (socket) {
+            socket.on('billing_update', ({ id, status }) => {
+                setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, state: status === 'paid' ? 'paid' : inv.state } : inv));
+            });
+        }
+        return () => { if (socket) socket.off('billing_update'); };
+    }, []);
 
     // Modal State
     const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -274,26 +298,26 @@ export default function HistoryBilling() {
         setShowPaymentModal(true);
     };
 
-    const processPayment = () => {
+    const processPayment = async () => {
         setIsProcessing(true);
-        // Simulate payment request
-        setTimeout(() => {
-            setIsProcessing(false);
-            setPaymentStatus('paid');
-            
-            // Mark invoice as paid
-            const id = selectedInvoice.id;
-            setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, state: 'paid' } : inv));
-            
-            // Mark all related activities in that month as paid
-            const monthShort = selectedInvoice.month.split(',')[0];
-            setActivities(prev => prev.map(act => {
-                if (act.date.includes(monthShort) && (act.status === 'unpaid' || act.status === 'overdue')) {
-                    return { ...act, status: 'paid' };
-                }
-                return act;
-            }));
-        }, 1500);
+        try {
+            // FIX #6: call real PATCH /billing/:id/pay endpoint
+            await fetchAPI(`/billing/${selectedInvoice.id}/pay`, { method: 'PATCH' });
+        } catch (err) {
+            console.error('Payment failed:', err);
+        }
+        setIsProcessing(false);
+        setPaymentStatus('paid');
+
+        const id = selectedInvoice.id;
+        setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, state: 'paid' } : inv));
+        const monthShort = selectedInvoice.month.split(',')[0];
+        setActivities(prev => prev.map(act => {
+            if (act.date.includes(monthShort) && (act.status === 'unpaid' || act.status === 'overdue')) {
+                return { ...act, status: 'paid' };
+            }
+            return act;
+        }));
     };
 
     return (
@@ -369,7 +393,7 @@ export default function HistoryBilling() {
                                         >
                                             <option value="all">All vehicles</option>
                                             {vehicles.map(v => (
-                                                <option key={v.id} value={v.plateNumber}>{v.plateNumber}</option>
+                                                <option key={v.id} value={v.licensePlate}>{v.licensePlate}</option>
                                             ))}
                                         </select>
                                         <ChevronDown size={14} className="text-gray-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />

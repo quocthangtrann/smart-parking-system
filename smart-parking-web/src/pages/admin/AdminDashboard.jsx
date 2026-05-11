@@ -40,12 +40,35 @@ export default function AdminDashboard() {
         disconnected: 4,
         traffic: 2345,
         gates: [
-            { name: 'Gate 1', available: 80, color: 'bg-green-500' },
-            { name: 'Gate 2', available: 25, color: 'bg-orange-500' },
-            { name: 'Gate 3', available: 0, color: 'bg-red-500' }
+            { name: 'Gate A', available: 80, color: 'bg-green-500' },
+            { name: 'Gate B', available: 25, color: 'bg-orange-500' },
+            { name: 'Gate C', available: 0,  color: 'bg-red-500' }
         ]
     });
     const [slots, setSlots] = useState([]);
+    
+    // Analytics State
+    const [filterMonth, setFilterMonth] = useState('');
+    const [filterYear, setFilterYear] = useState('2026');
+    const [revenueData, setRevenueData] = useState([]);
+
+    useEffect(() => {
+        const loadAnalytics = async () => {
+            try {
+                let url = `/analytics/revenue?year=${filterYear}`;
+                if (filterMonth) url += `&month=${filterMonth}`;
+                const data = await fetchAPI(url);
+                setRevenueData(data);
+                
+                // Calculate total revenue for the KPI card from this filtered data
+                const total = data.reduce((sum, item) => sum + item.total, 0);
+                setStats(prev => ({ ...prev, revenue: total.toLocaleString('vi-VN') }));
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        loadAnalytics();
+    }, [filterMonth, filterYear]);
 
     useEffect(() => {
         const loadData = async () => {
@@ -80,7 +103,8 @@ export default function AdminDashboard() {
     }, []);
 
     const updateStatsFromSlots = (currentSlots) => {
-        const gates = ['Gate 1', 'Gate 2', 'Gate 3'].map(name => {
+        // FIX #4: gate names must match what mqttService stores: "Gate A/B/C"
+        const gates = ['Gate A', 'Gate B', 'Gate C'].map(name => {
             const gateSlots = currentSlots.filter(s => s.gate === name);
             const available = gateSlots.filter(s => s.state === 'empty').length;
             let color = 'bg-green-500';
@@ -171,23 +195,58 @@ export default function AdminDashboard() {
                 {/* REVENUE CHART (70%) */}
                 <div className="lg:col-span-2 bg-white rounded-[12px] p-6 shadow-sm border border-gray-100 flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-gray-800 text-[16px] font-bold">Total Daily Revenue (Hourly breakdown)</h3>
-                        <select className="bg-gray-50 border border-gray-200 text-gray-600 text-[13px] rounded-md px-2 py-1 outline-none">
-                            <option>Today</option>
-                            <option>Yesterday</option>
-                        </select>
+                        <h3 className="text-gray-800 text-[16px] font-bold">Total Revenue</h3>
+                        <div className="flex gap-2">
+                            <select 
+                                value={filterMonth} 
+                                onChange={e => setFilterMonth(e.target.value)}
+                                className="bg-gray-50 border border-gray-200 text-gray-600 text-[13px] rounded-md px-2 py-1 outline-none font-bold"
+                            >
+                                <option value="">All Months</option>
+                                {[...Array(12).keys()].map(i => (
+                                    <option key={i+1} value={i+1}>{new Date(2000, i, 1).toLocaleString('en-US', { month: 'short' })}</option>
+                                ))}
+                            </select>
+                            <select 
+                                value={filterYear} 
+                                onChange={e => setFilterYear(e.target.value)}
+                                className="bg-gray-50 border border-gray-200 text-gray-600 text-[13px] rounded-md px-2 py-1 outline-none font-bold"
+                            >
+                                {[2026, 2025].map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
-                    <div className="flex-1 flex items-end justify-between gap-2 h-[200px] mt-4 pb-2 border-b border-gray-100">
-                        {[20, 35, 60, 80, 40, 50, 90, 100, 75, 45, 30, 15].map((val, i) => (
-                            <div key={i} className="w-full flex flex-col items-center gap-2 group">
-                                <div className="w-full bg-[#2d3a8c] opacity-80 group-hover:opacity-100 rounded-t-md transition-all duration-300 relative" style={{ height: `${val}%` }}>
-                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {val * 10}k
+                    <div className="flex-1 flex items-end justify-between gap-2 h-[250px] mt-4 pb-2 border-b border-gray-100">
+                        {revenueData.length === 0 ? (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm font-medium">No revenue data available for selected period.</div>
+                        ) : (
+                            revenueData.map((item, i) => {
+                                // Fallback for undefined data
+                                const total = item.total || 0;
+                                const dateStr = item.date || '';
+
+                                // Find max value to calculate percentage height
+                                const maxVal = Math.max(...revenueData.map(d => d.total || 0));
+                                const heightPercent = maxVal === 0 ? 0 : Math.max((total / maxVal) * 100, 5); // min 5% height
+                                
+                                let label = dateStr;
+                                if (label.length === 7) label = new Date(label + '-01').toLocaleString('en-US', { month: 'short' });
+                                else if (label.length === 10) label = parseInt(label.split('-')[2]);
+
+                                return (
+                                    <div key={i} className="w-full flex flex-col items-center gap-2 group h-full justify-end">
+                                        <div className="w-full bg-[#2d3a8c] opacity-80 group-hover:opacity-100 rounded-t-md transition-all duration-300 relative min-w-[12px]" style={{ height: `${heightPercent}%` }}>
+                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                                                {total.toLocaleString()}đ
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">{label}</span>
                                     </div>
-                                </div>
-                                <span className="text-[10px] text-gray-400 font-medium">{i + 6}h</span>
-                            </div>
-                        ))}
+                                );
+                            })
+                        )}
                     </div>
                 </div>
 

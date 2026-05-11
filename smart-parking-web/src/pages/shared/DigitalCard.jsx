@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { RefreshCw, ChevronDown, ChevronRight, ChevronLeft, User } from 'lucide-react';
 import logoBk from '../../assets/logobk.png';
-import { getStoredVehicles } from './MyVehicle';
+import { fetchAPI } from '../../api/config';
 
 // ─────────────────────────────────────────────
 // MOCK DATA (fallbacks when no navigation state)
@@ -324,27 +324,32 @@ export default function DigitalCard() {
     const user = state?.user ?? MOCK_STUDENT;
 
     // ── Global State ──────────────────────────
-    const [vehicles, setVehicles] = useState(getStoredVehicles());
-    const [selectedIndex, setSelectedIndex] = useState(() => {
-        const defaultIdx = vehicles.findIndex(v => v.isDefault);
-        return defaultIdx >= 0 ? defaultIdx : 0;
-    });
+    const [vehicles, setVehicles] = useState([]);
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
     
     const [qrToken, setQrToken] = useState(() => generateQRToken());
     const [timestamp, setTimestamp] = useState(() => formatTimestamp(new Date()));
     const [cardStatus, setCardStatus] = useState('active');
 
-    // Sync vehicles from storage
+    // Fetch vehicles from API
     useEffect(() => {
-        const handleUpdate = () => {
-            const updated = getStoredVehicles();
-            setVehicles(updated);
-            const defaultIdx = updated.findIndex(v => v.isDefault);
-            setSelectedIndex(defaultIdx >= 0 ? defaultIdx : 0);
-        };
-        window.addEventListener('vehicles_updated', handleUpdate);
-        return () => window.removeEventListener('vehicles_updated', handleUpdate);
-    }, []);
+        if (user?.id) {
+            setIsLoadingVehicles(true);
+            fetchAPI(`/vehicles/user/${user.id}`)
+                .then(data => {
+                    if (data && data.length > 0) {
+                        setVehicles(data);
+                        const defaultIdx = data.findIndex(v => v.isDefault);
+                        setSelectedIndex(defaultIdx >= 0 ? defaultIdx : 0);
+                    }
+                })
+                .catch(console.error)
+                .finally(() => setIsLoadingVehicles(false));
+        } else {
+            setIsLoadingVehicles(false);
+        }
+    }, [user?.id]);
 
     // Regenerate QR whenever vehicle changes
     useEffect(() => {
@@ -394,23 +399,35 @@ export default function DigitalCard() {
 
                     {/* ── SECTION 1: Parking Information ── */}
                     <div className="mt-2">
-                        <ParkingInfoSection
-                            vehicles={vehicles}
-                            selectedIndex={selectedIndex}
-                            onSelectIndex={setSelectedIndex}
-                        />
+                        {isLoadingVehicles ? (
+                            <div className="mx-5 bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
+                                Loading vehicles...
+                            </div>
+                        ) : vehicles.length === 0 ? (
+                            <div className="mx-5 bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
+                                No vehicles found. Please add a vehicle first.
+                            </div>
+                        ) : (
+                            <ParkingInfoSection
+                                vehicles={vehicles}
+                                selectedIndex={selectedIndex}
+                                onSelectIndex={setSelectedIndex}
+                            />
+                        )}
                     </div>
 
                     {/* ── SECTION 2: QR Code ── */}
-                    <div className="bg-white mx-5 mb-4 rounded-2xl shadow-sm border border-gray-100 pt-4">
-                        <QRSection
-                            vehicle={currentVehicle}
-                            qrToken={qrToken}
-                            timestamp={timestamp}
-                            onRefresh={handleRefresh}
-                            onSwipe={handleSwipe}
-                        />
-                    </div>
+                    {!isLoadingVehicles && vehicles.length > 0 && currentVehicle && (
+                        <div className="bg-white mx-5 mb-4 rounded-2xl shadow-sm border border-gray-100 pt-4">
+                            <QRSection
+                                vehicle={currentVehicle}
+                                qrToken={qrToken}
+                                timestamp={timestamp}
+                                onRefresh={handleRefresh}
+                                onSwipe={handleSwipe}
+                            />
+                        </div>
+                    )}
 
                     {/* Ticket-stub divider */}
                     <SectionDivider />

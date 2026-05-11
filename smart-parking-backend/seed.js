@@ -1,6 +1,6 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-const { sequelize, User, ParkingSlot, Device } = require('./models');
+const { sequelize, User, ParkingSlot, Device, FeePolicy } = require('./models');
 
 const seed = async () => {
     try {
@@ -23,7 +23,7 @@ const seed = async () => {
         await User.bulkCreate(users);
         console.log('Users seeded');
 
-        // Sample Slots
+        // Sample Devices
         const devices = [
             { id: 'CAM-G1-01', type: 'Camera', position: 'Gate 1 Entry', state: 'online', responseTime: 120 },
             { id: 'SEN-G1-A01', type: 'Sensor', position: 'Slot A01', state: 'error', responseTime: 0 },
@@ -31,6 +31,30 @@ const seed = async () => {
         ];
         await Device.bulkCreate(devices);
         console.log('Devices seeded');
+
+        // Seed Fee Policies (HK252)
+        const feePolicies = [
+            {
+                vehicleType: 'Motorbike',
+                daytimeRate: 2000,
+                eveningRate: 3000,
+                timeThreshold: '18:00',
+                effectiveFrom: new Date('2026-01-01T00:00:00Z'),
+                effectiveTo: new Date('2026-06-30T23:59:59Z'),
+                isActive: true
+            },
+            {
+                vehicleType: 'Car',
+                daytimeRate: 10000,
+                eveningRate: 20000,
+                timeThreshold: '18:00',
+                effectiveFrom: new Date('2026-01-01T00:00:00Z'),
+                effectiveTo: new Date('2026-06-30T23:59:59Z'),
+                isActive: true
+            }
+        ];
+        await FeePolicy.bulkCreate(feePolicies);
+        console.log('Fee Policies seeded');
 
         console.log('Seeding completed successfully');
         process.exit(0);

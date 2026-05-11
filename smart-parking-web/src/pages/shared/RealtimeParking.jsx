@@ -153,7 +153,7 @@ export default function RealtimeParking() {
                 setSelectedGate(liveGate);
             }
         }
-    }, [gates]);
+    }, [gates, selectedGate]);
 
     const updateGateAvailability = (currentSlots) => {
         setGates(prev => prev.map(gate => {

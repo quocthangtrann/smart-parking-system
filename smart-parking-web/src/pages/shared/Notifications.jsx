@@ -1,42 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, CheckCircle2, Bell, X } from 'lucide-react';
 import logoBk from '../../assets/logobk.png';
-
-const MOCK_NOTIFICATIONS = [
-    {
-        id: '1',
-        type: 'alert',
-        title: 'Unrecognized Vehicle Activity',
-        message: 'Plate: 51A-999.99\nLocation: Gate 1 - BK Campus\nTime: 10:30:54 24-02-2026',
-        timestamp: '24m ago',
-        isRead: false,
-    },
-    {
-        id: '2',
-        type: 'warning',
-        title: 'Payment Reminder',
-        message: 'Your debt is 99.000đ/150.000đ. Please pay to avoid parking disruption.',
-        timestamp: '4h ago',
-        isRead: false,
-    },
-    {
-        id: '3',
-        type: 'info',
-        title: 'System Maintenance',
-        message: 'The parking system will undergo maintenance from 00:00 to 04:00 on Feb 28.',
-        timestamp: 'Yesterday, 17:35',
-        isRead: true,
-    },
-    {
-        id: '4',
-        type: 'info',
-        title: 'Parking Fee Adjustment',
-        message: 'Effective March 1st, daytime parking fee will be 4.000đ.',
-        timestamp: 'Feb 20, 09:00',
-        isRead: true,
-    }
-];
+import { fetchAPI, socket } from '../../api/config';
 
 const Header = ({ onBack }) => (
     <header className="h-[77px] bg-[#210F7A] flex items-center px-[17px] shrink-0 z-10 shadow-md">
@@ -107,33 +73,47 @@ const NotificationItem = ({ data, onRead, onConfirm, onReport }) => {
 
 export default function Notifications() {
     const navigate = useNavigate();
-    const [notifications, setNotifications] = useState(() => {
-        const saved = localStorage.getItem('notifications');
-        if (saved) return JSON.parse(saved);
-        
-        localStorage.setItem('notifications', JSON.stringify(MOCK_NOTIFICATIONS));
-        return MOCK_NOTIFICATIONS;
-    });
+    const { state } = useLocation();
+    // Resolve user from navigation state or localStorage fallback
+    const user = state?.user ?? JSON.parse(localStorage.getItem('user') || 'null');
+
+    const [notifications, setNotifications] = useState([]);
+
+    // Load real notifications from API, subscribe to socket events
+    useEffect(() => {
+        if (user?.id) {
+            fetchAPI(`/notifications/user/${user.id}`)
+                .then(data => setNotifications(data || []))
+                .catch(console.error);
+        }
+
+        if (socket) {
+            socket.on('new_notification', (notif) => {
+                // Only show if targetRole is 'All' or matches the user's role
+                if (!notif.targetRole || notif.targetRole === 'All' || notif.targetRole.toLowerCase() === user?.role?.toLowerCase()) {
+                    setNotifications(prev => [notif, ...prev]);
+                }
+            });
+        }
+        return () => { if (socket) socket.off('new_notification'); };
+    }, []);
 
     const newNotifications = useMemo(() => notifications.filter(n => !n.isRead), [notifications]);
     const earlierNotifications = useMemo(() => notifications.filter(n => n.isRead), [notifications]);
 
     const handleMarkAllRead = () => {
-        setNotifications(prev => {
-            const next = prev.map(n => ({ ...n, isRead: true }));
-            localStorage.setItem('notifications', JSON.stringify(next));
-            window.dispatchEvent(new Event('notifications_updated'));
-            return next;
-        });
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        // FIX #7: persist via API
+        if (user?.id) {
+            fetchAPI(`/notifications/user/${user.id}/read-all`, { method: 'PATCH' })
+                .catch(console.error);
+        }
     };
 
     const handleRead = (id) => {
-        setNotifications(prev => {
-            const next = prev.map(n => n.id === id ? { ...n, isRead: true } : n);
-            localStorage.setItem('notifications', JSON.stringify(next));
-            window.dispatchEvent(new Event('notifications_updated'));
-            return next;
-        });
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+        // FIX #7: persist via API
+        fetchAPI(`/notifications/${id}/read`, { method: 'PATCH' }).catch(console.error);
     };
 
     const handleConfirm = (id) => {
